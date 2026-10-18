@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Master 🎯</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+}
+
+.container {
+    width: 100%;
+    max-width: 500px;
+    padding: 30px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    text-align: center;
+}
+
+h1 {
+    color: #ffd166;
+}
+
+#progress {
+    color: #ddd;
+}
+
+#timer {
+    color: #06d6a0;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+#question {
+    font-size: 22px;
+    margin: 25px 0;
+}
+
+#answers {
+    display: grid;
+    gap: 12px;
+}
+
+button {
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.answer {
+    background: #fff;
+    color: #222;
+}
+
+.answer:hover:not(:disabled) {
+    background: #ffd166;
+}
+
+.answer:disabled {
+    cursor: default;
+    opacity: 0.9;
+}
+
+#next, #restart {
+    background: #06d6a0;
+    color: #102820;
+    margin-top: 20px;
+    font-weight: bold;
+}
+
+#message {
+    min-height: 24px;
+}
+
+button:focus-visible {
+    outline: 3px solid #ffd166;
+    outline-offset: 3px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🎯 Quiz Master</h1>
+    <p>Test your knowledge and beat your score!</p>
+
+    <p id="progress">Question 1 of 5</p>
+    <p id="timer">⏱️ Time: 15s</p>
+
+    <h2 id="question">Loading question...</h2>
+
+    <div id="answers"></div>
+
+    <p id="message" aria-live="polite"></p>
+
+    <button id="next" hidden>Next Question ➡️</button>
+    <button id="restart" hidden>Play Again 🔄</button>
+</div>
+
+<script>
+const questions = [
+    {
+        question: "Which language structures a web page?",
+        answers: ["CSS", "HTML", "Python", "SQL"],
+        correct: 1
+    },
+    {
+        question: "Which planet is called the Red Planet?",
+        answers: ["Earth", "Venus", "Mars", "Jupiter"],
+        correct: 2
+    },
+    {
+        question: "What does CSS control?",
+        answers: ["Web design", "Database", "Server hardware", "None"],
+        correct: 0
+    },
+    {
+        question: "How many days are in a leap year?",
+        answers: ["365", "366", "364", "360"],
+        correct: 1
+    },
+    {
+        question: "Which language adds interactivity to websites?",
+        answers: ["JavaScript", "HTML only", "CSS only", "XML"],
+        correct: 0
+    }
+];
+
+let current = 0;
+let score = 0;
+let time = 15;
+let timerId;
+let answered = false;
+
+const questionEl = document.getElementById("question");
+const answersEl = document.getElementById("answers");
+const timerEl = document.getElementById("timer");
+const messageEl = document.getElementById("message");
+const nextBtn = document.getElementById("next");
+const restartBtn = document.getElementById("restart");
+const progressEl = document.getElementById("progress");
+
+function startTimer() {
+    clearInterval(timerId);
+    time = 15;
+    timerEl.textContent = `⏱️ Time: ${time}s`;
+
+    timerId = setInterval(() => {
+        time--;
+        timerEl.textContent = `⏱️ Time: ${time}s`;
+
+        if (time <= 0) {
+            clearInterval(timerId);
+            if (!answered) {
+                answered = true;
+                messageEl.textContent = "⏰ Time's up!";
+                disableAnswers();
+                nextBtn.hidden = false;
+            }
+        }
+    }, 1000);
+}
+
+function disableAnswers() {
+    document.querySelectorAll(".answer").forEach(button => {
+        button.disabled = true;
+    });
+}
+
+function showQuestion() {
+    clearInterval(timerId);
+    answered = false;
+    messageEl.textContent = "";
+    nextBtn.hidden = true;
+
+    const item = questions[current];
+
+    progressEl.textContent =
+        `Question ${current + 1} of ${questions.length}`;
+
+    questionEl.textContent = item.question;
+    answersEl.replaceChildren();
+
+    item.answers.forEach((answer, index) => {
+        const button = document.createElement("button");
+        button.className = "answer";
+        button.textContent = answer;
+
+        button.addEventListener("click", () => {
+            if (answered) return;
+
+            answered = true;
+            clearInterval(timerId);
+            disableAnswers();
+
+            if (index === item.correct) {
+                score++;
+                messageEl.textContent = "🎉 Correct answer!";
+                button.style.background = "#06d6a0";
+            } else {
+                messageEl.textContent =
+                    `❌ Incorrect! Correct answer: ${item.answers[item.correct]}`;
+
+                button.style.background = "#ff8a8a";
+
+                answersEl.children[item.correct].style.background =
+                    "#06d6a0";
+            }
+
+            nextBtn.hidden = false;
+        });
+
+        answersEl.appendChild(button);
+    });
+
+    startTimer();
+}
+
+function showResults() {
+    clearInterval(timerId);
+
+    questionEl.textContent = "🏆 Quiz Completed!";
+    progressEl.textContent = "Your final result";
+    timerEl.textContent = "✨ Great job!";
+    answersEl.replaceChildren();
+
+    messageEl.textContent =
+        `You scored ${score} out of ${questions.length}!`;
+
+    nextBtn.hidden = true;
+    restartBtn.hidden = false;
+}
+
+nextBtn.addEventListener("click", () => {
+    current++;
+
+    if (current < questions.length) {
+        showQuestion();
+    } else {
+        showResults();
+    }
+});
+
+restartBtn.addEventListener("click", () => {
+    current = 0;
+    score = 0;
+    restartBtn.hidden = true;
+    showQuestion();
+});
+
+showQuestion();
+</script>
+
+</body>
+</html>
